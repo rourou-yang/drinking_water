@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-tw">
+<head>
+	<meta charset="UTF-8">
+	<title>尋找台北市飲水機</title>
+    <meta name="viewport" content="initial-scale=1.0">
+    <meta charset="utf-8">
+     <style>
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+      	width: 100%;
+        height: 500px;
+      }
+      .banner{
+      	width: 100%;
+      	padding: 55px 0;
+      	text-align: center;
+      	background: url(images/bg.jpg) no-repeat center center;
+      	background-size: cover;
+      }
+      h1{
+  	    color: #fff;
+	    text-shadow: 0px 1px 5px #124182;
+	    margin-bottom: 10px;
+      }
+      .banner p{
+  	    margin: 0 0 15px;
+	    color: #edfcff;
+	    text-shadow: 0px 1px 5px #124182;
+      }
+      select{
+  	    border: none;
+	    font-size: 16px;
+	    height: 30px;
+      }
+    </style>
+</head>
+<body>
+
+<div class="banner">
+	<h1>尋找台北市飲水機</h1>
+	<p>—— 沒事多喝水 ——</p>
+	<select id="area"></select>
+</div>
+
+<div id="map"></div>
+
+
+<script type="text/javascript" src="js/jquery-1.8.3.min.js"></script>
+<script type="text/javascript" src="water.json"></script>
+<script type="text/javascript" src="region_data.json"></script>
+<script>
+	
+// 將行政區放進選單中
+  var mySet = new Set();
+  var option_template = '<option value="{{area}}" {{select}}>{{area2}}</option>';
+  
+
+  for(i=0;i<water.result.results.length;i++){
+  	var area = water.result.results[i]['行政區'];
+  	area = area + '區';
+  	mySet.add(area);
+  }
+
+// Set轉換成array
+  var area_array = Array.from(mySet);
+
+  for(i=0;i<area_array.length;i++){
+  	if( i== 0 ){
+  		var code = option_template.replace('{{area}}',area_array[i])
+	  							  .replace('{{area2}}',area_array[i])
+	  							  .replace('{{select}}','selected="selected"');
+  	}else{
+  		var code = option_template.replace('{{area}}',area_array[i])
+	  							  .replace('{{area2}}',area_array[i])
+	  							  .replace('{{select}}','');
+  	};
+  	// console.log(code);
+  	$('#area').append(code);
+  }
+
+
+var map;
+
+function initMap(){
+	// 取得目前選擇的行政區
+	var region = $('#area').find(":selected").text();
+		region = region.slice(0,2);
+	var region_lat,region_lng;
+
+	for(i=0;i<regionData.length;i++){
+		if(regionData[i].region == region){
+			region_lat = parseFloat(regionData[i].lat);
+			region_lng = parseFloat(regionData[i].lng);
+		}
+	}
+
+	//設定中心點座標
+	map = new google.maps.Map(document.getElementById('map'), {
+	  center: {lat: region_lat , lng: region_lng},
+	  zoom: 14,
+	  styles: [
+            {elementType: 'geometry', stylers: [{color: '#242f3e'}]},
+            {elementType: 'labels.text.stroke', stylers: [{color: '#242f3e'}]},
+            {elementType: 'labels.text.fill', stylers: [{color: '#746855'}]},
+            {
+              featureType: 'administrative.locality',
+              elementType: 'labels.text.fill',
+              stylers: [{color: '#d59563'}]
+            },
+            {
+              featureType: 'poi',
+              elementType: 'labels.text.fill',
+              stylers: [{color: '#d59563'}]
+            },
+            {
+              featureType: 'poi.park',
+              elementType: 'geometry',
+              stylers: [{color: '#263c3f'}]
+            },
+            {
+              featureType: 'poi.park',
+              elementType: 'labels.text.fill',
+              stylers: [{color: '#6b9a76'}]
+            },
+            {
+              featureType: 'road',
+              elementType: 'geometry',
+              stylers: [{color: '#38414e'}]
+            },
+            {
+              featureType: 'road',
+              elementType: 'geometry.stroke',
+              stylers: [{color: '#212a37'}]
+            },
+            {
+              featureType: 'road',
+              elementType: 'labels.text.fill',
+              stylers: [{color: '#9ca5b3'}]
+            },
+            {
+              featureType: 'road.highway',
+              elementType: 'geometry',
+              stylers: [{color: '#746855'}]
+            },
+            {
+              featureType: 'road.highway',
+              elementType: 'geometry.stroke',
+              stylers: [{color: '#1f2835'}]
+            },
+            {
+              featureType: 'road.highway',
+              elementType: 'labels.text.fill',
+              stylers: [{color: '#f3d19c'}]
+            },
+            {
+              featureType: 'transit',
+              elementType: 'geometry',
+              stylers: [{color: '#2f3948'}]
+            },
+            {
+              featureType: 'transit.station',
+              elementType: 'labels.text.fill',
+              stylers: [{color: '#d59563'}]
+            },
+            {
+              featureType: 'water',
+              elementType: 'geometry',
+              stylers: [{color: '#17263c'}]
+            },
+            {
+              featureType: 'water',
+              elementType: 'labels.text.fill',
+              stylers: [{color: '#515c6d'}]
+            },
+            {
+              featureType: 'water',
+              elementType: 'labels.text.stroke',
+              stylers: [{color: '#17263c'}]
+            }
+          ]
+	});
+
+	map_point(region);
+};
+
+function map_point(region){
+    //跑迴圈依序將值塞入到 marker
+    for(i=0;i<water.result.results.length;i++){
+
+    	if( water.result.results[i]['行政區'] == region ){
+
+	    	// 放經緯度
+	    	var str = {};
+	    	// 放marker的物件資料
+	    	var place = {};
+
+			//產出經緯度資料 (記得要把字串轉成數值)
+	    	str.lat = parseFloat(water.result.results[i]["緯度"]);
+	    	str.lng = parseFloat(water.result.results[i]["經度"]);
+
+	    	// 產出每組marker資訊
+	    	place.position = str;
+	    	place.map = map;
+	    	place.title = water.result.results[i]["場所名稱"];
+	    	place.icon = 'images/bottle.png';
+	    	// console.log(place);
+
+	    	new google.maps.Marker(place);
+    	}
+    }
+};
+
+// 更換行政區
+$('#area').change(function(){
+	initMap();
+});
+
+
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCG-7w9CEDtzEQEH5NMHatDlB3Jn3IVy_E&callback=initMap" async defer></script>
+	
+</body>
+</html>
